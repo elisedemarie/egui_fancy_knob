@@ -10,6 +10,8 @@ Feature-rich circular knob widget, originally forked from egui_knob.
 * Label formatting.
 * Two styles: Wiper and Dot.
 
+Credit where credit is due: https://github.com/obsqrbtz/egui_knob
+
 ## Improvements upon egui_knob
 
 * Passing value + setter instead of a mutable value. This allows for more flexible state management patterns (e.g. Model/View/Intent which I've found to work well with egui).
