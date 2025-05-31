@@ -1,0 +1,29 @@
+[package]
+name = "egui_fancy_knob"
+version = "0.1.0"
+edition = "2024"
+description = "Feature-rich circular knob widget for egui, originally forked from egui_knob."
+homepage = "https://github.com/chloebrett/egui_fancy_knob"
+repository = "https://github.com/obsqrbtz/egui_knob"
+readme = "README.md"
+license = "MIT"
+keywords = ["egui", "ui", "widget", "knob", "range"]
+categories = ["gui"]
+
+[lib]
+name = "egui_fancy_knob"
+path = "src/lib.rs"
+
+[[example]]
+name = "example_knob"
+path = "examples/example_knob.rs"
+
+[dependencies]
+egui = "0.31.1"
+
+[dev-dependencies]
+eframe = { version = "0.31.1", features = ["default_fonts"] }
+
+[features]
+extra_debug = []
+
