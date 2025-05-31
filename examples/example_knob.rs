@@ -1,5 +1,5 @@
 use eframe::egui;
-use egui_fancy_knob::{Knob, KnobStyle, LabelPosition};
+use egui_fancy_knob::{Knob, KnobStyle, LabelPosition, add_knob};
 
 fn main() -> eframe::Result<()> {
     eframe::run_native(
@@ -37,29 +37,48 @@ impl eframe::App for KnobExample {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui
-                    .add(
-                        Knob::new(
-                            self.basic_value,
-                            |value| self.basic_value = value,
-                            0.0..=100.0,
-                            KnobStyle::Dot,
-                        )
-                        .with_label("Basic", LabelPosition::Right)
-                        .with_size(40.0)
-                        .with_font_size(10.0)
-                        .with_colors(
-                            egui::Color32::from_rgb(60, 60, 60),
-                            egui::Color32::from_rgb(150, 150, 150),
-                            egui::Color32::from_rgb(150, 150, 150),
-                            egui::Color32::from_rgb(200, 200, 200),
-                        )
-                        .with_neutral(50.0),
+                add_knob(
+                    ui,
+                    Knob::new(
+                        self.basic_value,
+                        |value| self.basic_value = value,
+                        0.0..=100.0,
+                        KnobStyle::Dot,
                     )
-                    .changed()
-                {
-                    println!("Basic value changed: {}", self.basic_value);
-                }
+                    .with_label("Basic", LabelPosition::Right)
+                    .with_size(40.0)
+                    .with_font_size(10.0)
+                    .with_colors(
+                        egui::Color32::from_rgb(60, 60, 60),
+                        egui::Color32::from_rgb(150, 150, 150),
+                        egui::Color32::from_rgb(150, 150, 150),
+                        egui::Color32::from_rgb(200, 200, 200),
+                    )
+                    .with_neutral(50.0),
+                    || {
+                        println!("Released basic knob");
+                    },
+                );
+
+                ui.add(
+                    Knob::new(
+                        21.6,
+                        |_| {},
+                        0.0..=100.0,
+                        KnobStyle::Wiper,
+                    )
+                    .with_label("Disabled", LabelPosition::Bottom)
+                    .with_colors(
+                        egui::Color32::DARK_GRAY,
+                        egui::Color32::GRAY,
+                        egui::Color32::GRAY,
+                        egui::Color32::GRAY,
+                    )
+                    .with_size(50.0)
+                    .with_font_size(14.0)
+                    .with_stroke_width(3.0)
+                    .enabled(false)
+                );
 
                 ui.add(
                     Knob::new(

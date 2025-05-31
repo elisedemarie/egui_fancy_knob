@@ -248,6 +248,7 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
             }
         }
 
+        let is_dragging = response.dragged() && self.enabled;
         let painter = ui.painter();
         let knob_rect = match self.label_position {
             LabelPosition::Left => {
@@ -265,7 +266,7 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
         };
 
         let center = knob_rect.center();
-        let radius = if response.dragged() {
+        let radius = if is_dragging {
             knob_size.x * 0.55
         } else {
             knob_size.x * 0.5
@@ -284,7 +285,7 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
 
         let angle = TAU * ((self.value - min) / (max - min) * range + start_angle);
 
-        let knob_color = if response.dragged() {
+        let knob_color = if is_dragging {
             self.knob_dragging_color
         } else {
             self.knob_color
