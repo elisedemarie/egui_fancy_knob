@@ -2,7 +2,12 @@ use egui::{Align2, Color32, Rect, Response, Sense, Stroke, Ui, Vec2, Widget};
 use std::f32::consts::TAU;
 use std::ops::RangeInclusive;
 
+mod normalise;
+
+use normalise::*;
+
 const KNOB_FINE_DRAG_RATIO: f32 = 0.2;
+const INFINITY: f32 = f32::INFINITY;
 
 pub fn add_knob<F: Fn()>(ui: &mut Ui, knob: Knob<impl FnMut(f32)>, on_release: F) {
     let response = ui.add(knob);
@@ -10,6 +15,16 @@ pub fn add_knob<F: Fn()>(ui: &mut Ui, knob: Knob<impl FnMut(f32)>, on_release: F
     if response.drag_stopped() || response.lost_focus() {
         on_release();
     }
+}
+
+#[derive(Clone)]
+struct KnobSpec {
+    logarithmic: bool,
+    /// For logarithmic knobs, the smallest positive value we are interested in.
+    smallest_positive: f32,
+    /// For logarithmic knobs, the largest positive value we are interested in before the slider
+    /// switches to `INFINITY`.
+    largest_finite: f32,
 }
 
 /// Position of the label relative to the knob
@@ -42,6 +57,7 @@ pub struct Knob<F: FnMut(f32)> {
     value: f32,
     set_value: F,
     range: RangeInclusive<f32>,
+    spec: KnobSpec,
     size: f32,
     font_size: f32,
     stroke_width: f32,
@@ -72,6 +88,11 @@ impl<F: FnMut(f32)> Knob<F> {
             value: value.clamp(*range.start(), *range.end()),
             set_value,
             range,
+            spec: KnobSpec {
+                logarithmic: false,
+                smallest_positive: 1e-6,
+                largest_finite: INFINITY,
+            },
             size: 40.0,
             font_size: 12.0,
             stroke_width: 2.0,
@@ -178,6 +199,24 @@ impl<F: FnMut(f32)> Knob<F> {
         self.enabled = enabled;
         self
     }
+
+    #[inline]
+    pub fn logarithmic(mut self) -> Self {
+        self.spec.logarithmic = true;
+        self
+    }
+
+    #[inline]
+    pub fn smallest_positive(mut self, smallest_positive: f32) -> Self {
+        self.spec.smallest_positive = smallest_positive;
+        self
+    }
+
+    #[inline]
+    pub fn largest_finite(mut self, largest_finite: f32) -> Self {
+        self.spec.largest_finite = largest_finite;
+        self
+    }
 }
 
 impl<F: FnMut(f32)> Widget for Knob<F> {
@@ -185,12 +224,11 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
         let knob_size = Vec2::splat(self.size);
         let min = *self.range.start();
         let max = *self.range.end();
-
         let label_size = if let Some(label) = &self.label {
             let font_id = egui::FontId::proportional(self.font_size);
             let max_text = format!("{}: {}", label, (self.label_format)(max));
             ui.painter()
-                .layout(max_text, font_id, Color32::WHITE, f32::INFINITY)
+                .layout(max_text, font_id, Color32::WHITE, INFINITY)
                 .size()
         } else {
             Vec2::ZERO
@@ -233,16 +271,26 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
                     }
                 });
 
-                let step = self.step.unwrap_or((max - min) * 0.005);
-                let mut new_value = (self.value - delta * step).clamp(min, max);
-
-                if let Some(step) = self.step {
-                    let steps = ((new_value - min) / step).round();
-                    new_value = (min + steps * step).clamp(min, max)
+                let step = if let Some(step) = self.step {
+                    // Normalise step size.
+                    step / (max - min).abs()
+                } else {
+                    0.005
+                };
+                let mut new_value =
+                    normalised_from_value(self.value, self.range.clone(), &self.spec)
+                        - delta * step;
+                if self.step.is_some() {
+                    let steps = (new_value / step).round();
+                    new_value = (steps * step).clamp(0.0, 1.0)
                 }
 
                 if new_value != self.value {
-                    (self.set_value)(new_value);
+                    (self.set_value)(value_from_normalised(
+                        new_value,
+                        self.range.clone(),
+                        &self.spec,
+                    ));
                     response.mark_changed();
                 }
             }
@@ -283,7 +331,8 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
 
         let start_angle = down + offset;
 
-        let angle = TAU * ((self.value - min) / (max - min) * range + start_angle);
+        let angle =
+            TAU * (normalised_from_value(self.value, self.range, &self.spec) * range + start_angle);
 
         let knob_color = if is_dragging {
             self.knob_dragging_color
