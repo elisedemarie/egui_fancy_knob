@@ -16,6 +16,7 @@ Credit where credit is due: https://github.com/obsqrbtz/egui_knob
 
 * Passing value + setter instead of a mutable value. This allows for more flexible state management patterns (e.g. Model/View/Intent which I've found to work well with egui).
 * Support for neutral position / reset.
+* Support for logarithmic knobs.
 * Support for fine dragging.
 * Support for disabled/unmodifiable knob.
 * Knob position is rendered symmetrically.
