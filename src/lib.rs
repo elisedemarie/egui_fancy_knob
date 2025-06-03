@@ -84,7 +84,7 @@ impl<F: FnMut(f32)> Knob<F> {
     /// * `min` - Minimum value
     /// * `max` - Maximum value
     /// * `style` - Visual style of the knob indicator
-    /// * `spec` - Parametres for a logarithmic knob
+    /// * `spec` - Parameters for a logarithmic knob
     pub fn new(value: f32, set_value: F, range: RangeInclusive<f32>, style: KnobStyle) -> Self {
         Self {
             value: value.clamp(*range.start(), *range.end()),
@@ -110,6 +110,8 @@ impl<F: FnMut(f32)> Knob<F> {
                 if v.abs() > 1e-2 || v == 0.0 {
                     format!("{:.2}", v)
                 } else {
+                    // Display values close to zero in scientific power notation.
+                    // Otherwise they display as 0.0.
                     format!("{:+.1e}", v)
                 }
             }),
@@ -208,21 +210,28 @@ impl<F: FnMut(f32)> Knob<F> {
         self
     }
 
-    #[inline]
+    /// Make this a logarithmic knob.
+    /// The default is OFF.
     pub fn logarithmic(mut self, logarithmic: bool) -> Self {
         self.spec.logarithmic = logarithmic;
         self
     }
 
-    #[inline]
+    /// For logarithmic knobs that include zero.
+    /// What is the smallest possible value that can be selected
+    /// before the value goes to zero.
+    /// Value is absolute so works for ranges `0..=x` and `x..=0`.
     pub fn smallest_finite(mut self, smallest_finite: f32) -> Self {
-        self.spec.smallest_finite = smallest_finite;
+        self.spec.smallest_finite = smallest_finite.abs();
         self
     }
 
-    #[inline]
+    /// For logarithmic knobs that go to infinity.
+    /// What is the largest possible value that can be selected
+    /// before the value goes to infinity.
+    /// Value is absolute so works for ranges `NEG_INFINITY..=x` and `x..=NEG_INFINITY`.
     pub fn largest_finite(mut self, largest_finite: f32) -> Self {
-        self.spec.largest_finite = largest_finite;
+        self.spec.largest_finite = largest_finite.abs();
         self
     }
 }
@@ -285,8 +294,9 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
                 } else {
                     0.005
                 };
-                let next_normal = normalised_from_value(self.value, self.range.clone(), &self.spec);
-                let mut new_value = next_normal - delta * step;
+                let mut new_value =
+                    normalised_from_value(self.value, self.range.clone(), &self.spec)
+                        - delta * step;
                 if self.step.is_some() {
                     let steps = (new_value / step).round();
                     new_value = (steps * step).clamp(0.0, 1.0)
