@@ -20,9 +20,10 @@ pub fn add_knob<F: Fn()>(ui: &mut Ui, knob: Knob<impl FnMut(f32)>, on_release: F
 #[derive(Clone)]
 struct KnobSpec {
     logarithmic: bool,
-    /// For logarithmic knobs, the smallest positive value we are interested in.
-    smallest_positive: f32,
-    /// For logarithmic knobs, the largest positive value we are interested in before the slider
+    /// For logarithmic knobs, the smallest positive value we are interested in before the knob
+    /// switches to `0.0`.
+    smallest_finite: f32,
+    /// For logarithmic knobs, the largest positive value we are interested in before the knob
     /// switches to `INFINITY`.
     largest_finite: f32,
 }
@@ -83,6 +84,7 @@ impl<F: FnMut(f32)> Knob<F> {
     /// * `min` - Minimum value
     /// * `max` - Maximum value
     /// * `style` - Visual style of the knob indicator
+    /// * `spec` - Parametres for a logarithmic knob
     pub fn new(value: f32, set_value: F, range: RangeInclusive<f32>, style: KnobStyle) -> Self {
         Self {
             value: value.clamp(*range.start(), *range.end()),
@@ -90,8 +92,8 @@ impl<F: FnMut(f32)> Knob<F> {
             range,
             spec: KnobSpec {
                 logarithmic: false,
-                smallest_positive: 1e-6,
-                largest_finite: INFINITY,
+                smallest_finite: 1e-6,
+                largest_finite: 1e6,
             },
             size: 40.0,
             font_size: 12.0,
@@ -104,7 +106,13 @@ impl<F: FnMut(f32)> Knob<F> {
             label_position: LabelPosition::Bottom,
             style,
             label_offset: 1.0,
-            label_format: Box::new(|v| format!("{:.2}", v)),
+            label_format: Box::new(|v| {
+                if v.abs() > 1e-2 || v == 0.0 {
+                    format!("{:.2}", v)
+                } else {
+                    format!("{:+.1e}", v)
+                }
+            }),
             step: None,
             neutral: None,
             enabled: true,
@@ -201,14 +209,14 @@ impl<F: FnMut(f32)> Knob<F> {
     }
 
     #[inline]
-    pub fn logarithmic(mut self) -> Self {
-        self.spec.logarithmic = true;
+    pub fn logarithmic(mut self, logarithmic: bool) -> Self {
+        self.spec.logarithmic = logarithmic;
         self
     }
 
     #[inline]
-    pub fn smallest_positive(mut self, smallest_positive: f32) -> Self {
-        self.spec.smallest_positive = smallest_positive;
+    pub fn smallest_finite(mut self, smallest_finite: f32) -> Self {
+        self.spec.smallest_finite = smallest_finite;
         self
     }
 
@@ -277,9 +285,8 @@ impl<F: FnMut(f32)> Widget for Knob<F> {
                 } else {
                     0.005
                 };
-                let mut new_value =
-                    normalised_from_value(self.value, self.range.clone(), &self.spec)
-                        - delta * step;
+                let next_normal = normalised_from_value(self.value, self.range.clone(), &self.spec);
+                let mut new_value = next_normal - delta * step;
                 if self.step.is_some() {
                     let steps = (new_value / step).round();
                     new_value = (steps * step).clamp(0.0, 1.0)

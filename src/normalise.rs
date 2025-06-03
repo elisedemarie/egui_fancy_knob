@@ -93,7 +93,7 @@ pub fn normalised_from_value(value: f32, range: RangeInclusive<f32>, spec: &Knob
         } else {
             assert!(min < 0.0 && 0.0 < max);
             let zero_cutoff = logarithmic_zero_cutoff(min, max);
-            if value < zero_cutoff {
+            if value < 0.0 {
                 // negative
                 remap(
                     normalised_from_value(value, min..=0.0, spec),
@@ -123,10 +123,10 @@ fn range_log10(min: f32, max: f32, spec: &KnobSpec) -> (f32, f32) {
     assert!(min <= max);
 
     if min == 0.0 && max == INFINITY {
-        (spec.smallest_positive.log10(), INF_RANGE_MAGNITUDE)
+        (spec.smallest_finite.log10(), spec.largest_finite.log10())
     } else if min == 0.0 {
-        if spec.smallest_positive < max {
-            (spec.smallest_positive.log10(), max.log10())
+        if spec.smallest_finite < max {
+            (spec.smallest_finite.log10(), max.log10())
         } else {
             (max.log10() - INF_RANGE_MAGNITUDE, max.log10())
         }

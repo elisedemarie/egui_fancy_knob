@@ -17,6 +17,8 @@ struct KnobExample {
     red_value: f32,
     green_value: f32,
     blue_value: f32,
+    log_value: f32,
+    neg_log_value: f32,
 }
 
 impl Default for KnobExample {
@@ -29,6 +31,8 @@ impl Default for KnobExample {
             red_value: 0.0,
             green_value: 0.0,
             blue_value: 0.0,
+            log_value: 0.0,
+            neg_log_value: 0.0,
         }
     }
 }
@@ -61,23 +65,18 @@ impl eframe::App for KnobExample {
                 );
 
                 ui.add(
-                    Knob::new(
-                        21.6,
-                        |_| {},
-                        0.0..=100.0,
-                        KnobStyle::Wiper,
-                    )
-                    .with_label("Disabled", LabelPosition::Bottom)
-                    .with_colors(
-                        egui::Color32::DARK_GRAY,
-                        egui::Color32::GRAY,
-                        egui::Color32::GRAY,
-                        egui::Color32::GRAY,
-                    )
-                    .with_size(50.0)
-                    .with_font_size(14.0)
-                    .with_stroke_width(3.0)
-                    .enabled(false)
+                    Knob::new(21.6, |_| {}, 0.0..=100.0, KnobStyle::Wiper)
+                        .with_label("Disabled", LabelPosition::Bottom)
+                        .with_colors(
+                            egui::Color32::DARK_GRAY,
+                            egui::Color32::GRAY,
+                            egui::Color32::GRAY,
+                            egui::Color32::GRAY,
+                        )
+                        .with_size(50.0)
+                        .with_font_size(14.0)
+                        .with_stroke_width(3.0)
+                        .enabled(false),
                 );
 
                 ui.add(
@@ -179,6 +178,37 @@ impl eframe::App for KnobExample {
                     )
                     .with_size(50.0)
                     .with_neutral(50.0),
+                );
+
+                ui.add(
+                    Knob::new(
+                        self.log_value,
+                        |value| self.log_value = value,
+                        0.0..=1e-4,
+                        KnobStyle::Dot,
+                    )
+                    .with_label("Log", LabelPosition::Bottom)
+                    .with_size(40.0)
+                    .with_font_size(10.0)
+                    .logarithmic(true)
+                    .largest_finite(1e3)
+                    .with_neutral(1.5),
+                );
+
+                ui.add(
+                    Knob::new(
+                        self.neg_log_value,
+                        |value| self.neg_log_value = value,
+                        f32::NEG_INFINITY..=10.0,
+                        KnobStyle::Dot,
+                    )
+                    .with_label("Neg Log", LabelPosition::Bottom)
+                    .with_size(40.0)
+                    .with_font_size(10.0)
+                    .logarithmic(true)
+                    .largest_finite(1e3)
+                    .smallest_finite(1e-3)
+                    .with_neutral(1.5),
                 );
             });
         });
