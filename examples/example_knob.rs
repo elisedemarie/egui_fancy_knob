@@ -184,7 +184,7 @@ impl eframe::App for KnobExample {
                     Knob::new(
                         self.log_value,
                         |value| self.log_value = value,
-                        0.0..=1e-4,
+                        0.0..=f32::INFINITY,
                         KnobStyle::Dot,
                     )
                     .with_label("Log", LabelPosition::Bottom)
@@ -192,6 +192,7 @@ impl eframe::App for KnobExample {
                     .with_font_size(10.0)
                     .logarithmic(true)
                     .largest_finite(1e3)
+                    .smallest_finite(1e-3)
                     .with_neutral(1.5),
                 );
 
@@ -206,8 +207,8 @@ impl eframe::App for KnobExample {
                     .with_size(40.0)
                     .with_font_size(10.0)
                     .logarithmic(true)
-                    .largest_finite(1e3)
-                    .smallest_finite(1e-3)
+                    .largest_finite(1e2)
+                    .smallest_finite(1e-2)
                     .with_neutral(1.5),
                 );
             });
